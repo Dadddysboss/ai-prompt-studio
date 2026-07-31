@@ -1,26 +1,70 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@theme {
+  /* Samsung One UI 8 — OLED Black base */
+  --color-background: #08080a;
+  --color-surface: #141416;
+  --color-surface-hover: #1b1b20;
+  --color-surface-raised: #1e1e23;
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  /* Borders — subtle zinc-800/80 edge */
+  --color-edge: rgba(39, 39, 42, 0.8);
+
+  /* Typography — crisp white / muted gray */
+  --color-foreground: #fafafa;
+  --color-muted: #9ca3af;
+
+  /* Vibrant Samsung accent — Electric Blue */
+  --color-accent: #007aff;
+  --color-accent-hover: #0a84ff;
+  --color-accent-soft: rgba(0, 122, 255, 0.12);
+
+  /* Luxurious radii */
+  --radius-card: 28px;
+  --radius-card-sm: 24px;
+  --radius-pill: 9999px;
+
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@layer base {
+  html {
+    color-scheme: dark;
   }
-}
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  body {
+    @apply bg-background font-sans text-foreground antialiased;
+  }
+
+  ::selection {
+    background-color: var(--color-accent);
+    color: #ffffff;
+  }
+
+  /* Clean monospace for code fields */
+  code,
+  pre,
+  kbd {
+    @apply font-mono;
+  }
+
+  /* Slim OLED scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: #2a2a2f;
+    border-radius: var(--radius-pill);
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: #3a3a40;
+  }
 }
