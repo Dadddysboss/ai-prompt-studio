@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown, Eye, EyeOff, KeyRound, Loader2, X } from "lucide-react";
+import { Check, ChevronDown, Eye, EyeOff, KeyRound, Loader2, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useLanguage } from "@/locales/LanguageProvider";
 import {
@@ -48,15 +48,22 @@ export default function AiSettingsDrawer({
   const [showKey, setShowKey] = useState(false);
   const [fetching, setFetching] = useState(false);
   const [fetchFailed, setFetchFailed] = useState(false);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
 
   useEffect(() => {
     if (!open) return;
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
+      if (event.key === "Escape") {
+        if (dropdownOpen) {
+          setDropdownOpen(false);
+        } else {
+          onClose();
+        }
+      }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [open, onClose]);
+  }, [open, onClose, dropdownOpen]);
 
   useEffect(() => {
     if (!open) return;
@@ -215,34 +222,74 @@ export default function AiSettingsDrawer({
               )}
             </div>
             <div className="relative">
-              <select
+              <button
                 id="ai-model"
-                value={model}
+                type="button"
+                onClick={() => setDropdownOpen((prev) => !prev)}
                 disabled={fetching}
-                onChange={(event) =>
-                  onModelsChange({
-                    ...models,
-                    [provider]: event.target.value,
-                  })
-                }
-                className={`${inputClasses} appearance-none cursor-pointer pe-10 disabled:cursor-not-allowed disabled:opacity-60`}
+                aria-haspopup="listbox"
+                aria-expanded={dropdownOpen}
+                className={`${inputClasses} flex cursor-pointer items-center justify-between gap-2 text-start disabled:cursor-not-allowed disabled:opacity-60`}
               >
-                {modelOptions.map((option) => (
-                  <option key={option.id} value={option.id}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-              {fetching ? (
-                <Loader2
-                  size={16}
-                  className="pointer-events-none absolute end-3 top-1/2 -translate-y-1/2 animate-spin text-accent"
-                />
-              ) : (
-                <ChevronDown
-                  size={16}
-                  className="pointer-events-none absolute end-3 top-1/2 -translate-y-1/2 text-muted"
-                />
+                <span className="truncate font-mono text-xs text-foreground">
+                  {model}
+                </span>
+                {fetching ? (
+                  <Loader2
+                    size={16}
+                    className="shrink-0 animate-spin text-accent"
+                  />
+                ) : (
+                  <ChevronDown
+                    size={16}
+                    className={`shrink-0 text-muted transition-transform duration-300 ${
+                      dropdownOpen ? "rotate-180" : ""
+                    }`}
+                  />
+                )}
+              </button>
+
+              {dropdownOpen && (
+                <>
+                  <div
+                    className="fixed inset-0"
+                    onClick={() => setDropdownOpen(false)}
+                  />
+                  <div
+                    role="listbox"
+                    aria-label={t.model}
+                    className="absolute start-0 end-0 top-full z-10 mt-2 max-h-56 overflow-y-auto rounded-2xl border border-edge bg-surface p-1.5 shadow-2xl shadow-black/60"
+                  >
+                    {modelOptions.map((option) => {
+                      const selected = option.id === model;
+                      return (
+                        <button
+                          key={option.id}
+                          type="button"
+                          role="option"
+                          aria-selected={selected}
+                          onClick={() => {
+                            onModelsChange({
+                              ...models,
+                              [provider]: option.id,
+                            });
+                            setDropdownOpen(false);
+                          }}
+                          className={`flex w-full items-center justify-between gap-2 rounded-xl px-3 py-2 text-start text-sm transition-colors ${
+                            selected
+                              ? "bg-accent-soft text-accent"
+                              : "text-foreground hover:bg-surface-hover"
+                          }`}
+                        >
+                          <span className="truncate font-mono text-xs">
+                            {option.label}
+                          </span>
+                          {selected && <Check size={14} className="shrink-0" />}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </>
               )}
             </div>
             {fetchFailed && (
