@@ -8,10 +8,36 @@ interface AiRequestBody {
   provider: AIProvider;
   model: string;
   apiKey: string;
+  baseUrl?: string;
 }
 
 function isAIProvider(value: unknown): value is AIProvider {
-  return value === "openai" || value === "anthropic" || value === "groq";
+  return (
+    value === "openai" ||
+    value === "anthropic" ||
+    value === "groq" ||
+    value === "custom"
+  );
+}
+
+function isHttpUrl(value: string): boolean {
+  try {
+    const url = new URL(value);
+    return url.protocol === "http:" || url.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
+function resolveEndpoint(
+  provider: AIProvider,
+  baseUrl: string | undefined
+): string {
+  const meta = getProviderMeta(provider);
+  if (provider !== "custom" || !baseUrl?.trim()) return meta.endpoint;
+  const trimmed = baseUrl.trim().replace(/\/+$/, "");
+  if (trimmed.endsWith("/chat/completions")) return trimmed;
+  return `${trimmed}/v1/chat/completions`;
 }
 
 export async function POST(request: Request) {
@@ -22,7 +48,7 @@ export async function POST(request: Request) {
     return Response.json({ error: "Invalid JSON body." }, { status: 400 });
   }
 
-  const { prompt, provider, model, apiKey } = body;
+  const { prompt, provider, model, apiKey, baseUrl } = body;
 
   if (typeof prompt !== "string" || !prompt.trim()) {
     return Response.json({ error: "Prompt is required." }, { status: 400 });
@@ -36,8 +62,16 @@ export async function POST(request: Request) {
   if (typeof apiKey !== "string" || !apiKey.trim()) {
     return Response.json({ error: "API key is required." }, { status: 400 });
   }
+  if (
+    baseUrl !== undefined &&
+    typeof baseUrl === "string" &&
+    !isHttpUrl(baseUrl.trim())
+  ) {
+    return Response.json({ error: "Invalid base URL." }, { status: 400 });
+  }
 
   const providerMeta = getProviderMeta(provider);
+  const endpoint = resolveEndpoint(provider, baseUrl);
 
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
@@ -64,7 +98,7 @@ export async function POST(request: Request) {
         };
 
   try {
-    const upstream = await fetch(providerMeta.endpoint, {
+    const upstream = await fetch(endpoint, {
       method: "POST",
       headers,
       body: JSON.stringify(payload),

@@ -47,6 +47,10 @@ export const en = {
   model: "Model",
   apiKey: "API Key",
   apiKeyPlaceholder: "Paste your API key",
+  baseUrl: "Base URL",
+  baseUrlPlaceholder: "https://api.deepseek.com/v1/chat/completions",
+  customBaseUrlHint:
+    "OpenAI-compatible endpoint — DeepSeek, OpenCode proxy, vLLM, LM Studio, etc.",
   syncingModels: "Fetching models...",
   modelsFetchError:
     "Couldn't load models for this key — showing popular defaults.",

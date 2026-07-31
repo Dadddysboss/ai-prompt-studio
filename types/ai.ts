@@ -1,4 +1,4 @@
-export type AIProvider = "openai" | "anthropic" | "groq";
+export type AIProvider = "openai" | "anthropic" | "groq" | "custom";
 
 export interface AIModelOption {
   id: string;
@@ -11,6 +11,9 @@ export interface AIProviderMeta {
   defaultModel: string;
   models: AIModelOption[];
 }
+
+export const CUSTOM_BASE_URL =
+  "https://api.deepseek.com/v1/chat/completions";
 
 export const AI_PROVIDERS: AIProviderMeta[] = [
   {
@@ -54,6 +57,15 @@ export const AI_PROVIDERS: AIProviderMeta[] = [
       { id: "gemma2-9b-it", label: "Gemma 2 9B" },
       { id: "llama-3.2-3b-preview", label: "Llama 3.2 3B" },
       { id: "llama-3.2-1b-preview", label: "Llama 3.2 1B" },
+    ],
+  },
+  {
+    id: "custom",
+    endpoint: CUSTOM_BASE_URL,
+    defaultModel: "deepseek-chat",
+    models: [
+      { id: "deepseek-chat", label: "DeepSeek Chat (V3)" },
+      { id: "deepseek-reasoner", label: "DeepSeek Reasoner (R1)" },
     ],
   },
 ];

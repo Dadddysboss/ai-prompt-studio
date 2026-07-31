@@ -15,9 +15,11 @@ interface AiSettingsDrawerProps {
   onProviderChange: (provider: AIProvider) => void;
   keys: Record<AIProvider, string>;
   models: Record<AIProvider, string>;
+  baseUrls: Record<AIProvider, string>;
   customModels: Partial<Record<AIProvider, AIModelOption[]>>;
   onKeysChange: (keys: Record<AIProvider, string>) => void;
   onModelsChange: (models: Record<AIProvider, string>) => void;
+  onBaseUrlsChange: (baseUrls: Record<AIProvider, string>) => void;
   onModelsFetched: (
     provider: AIProvider,
     models: AIModelOption[]
@@ -37,9 +39,11 @@ export default function AiSettingsDrawer({
   onProviderChange,
   keys,
   models,
+  baseUrls,
   customModels,
   onKeysChange,
   onModelsChange,
+  onBaseUrlsChange,
   onModelsFetched,
   onClose,
   onSaved,
@@ -100,7 +104,11 @@ export default function AiSettingsDrawer({
       fetch("/api/ai/models", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ provider, apiKey: trimmedKey }),
+        body: JSON.stringify({
+          provider,
+          apiKey: trimmedKey,
+          baseUrl: provider === "custom" ? baseUrls.custom?.trim() : undefined,
+        }),
         signal: controller.signal,
       })
         .then(async (res) => {
@@ -125,7 +133,7 @@ export default function AiSettingsDrawer({
       controller.abort();
       setFetching(false);
     };
-  }, [key, provider, open, onModelsFetched]);
+  }, [key, provider, open, baseUrls.custom, onModelsFetched]);
 
   return (
     <div
@@ -168,28 +176,59 @@ export default function AiSettingsDrawer({
         >
           <div className="flex flex-col gap-2">
             <span className={labelClasses}>{t.provider}</span>
-            <div className="grid grid-cols-3 gap-1 rounded-full border border-edge bg-background p-1">
-              {["openai", "anthropic", "groq"].map((providerId) => (
-                <button
-                  key={providerId}
-                  type="button"
-                  onClick={() => onProviderChange(providerId as AIProvider)}
-                  aria-pressed={provider === providerId}
-                  className={`rounded-full px-3 py-2 text-xs font-medium transition-all duration-300 ${
-                    provider === providerId
-                      ? "bg-accent text-white"
-                      : "text-muted hover:text-foreground"
-                  }`}
-                >
-                  {providerId === "openai"
-                    ? "OpenAI"
-                    : providerId === "anthropic"
-                      ? "Anthropic"
-                      : "Groq"}
-                </button>
-              ))}
+            <div className="grid grid-cols-4 gap-1 rounded-full border border-edge bg-background p-1">
+              {(["openai", "anthropic", "groq", "custom"] as AIProvider[]).map(
+                (providerId) => (
+                  <button
+                    key={providerId}
+                    type="button"
+                    onClick={() => onProviderChange(providerId)}
+                    aria-pressed={provider === providerId}
+                    className={`truncate rounded-full px-2 py-2 text-xs font-medium transition-all duration-300 ${
+                      provider === providerId
+                        ? "bg-accent text-white"
+                        : "text-muted hover:text-foreground"
+                    }`}
+                  >
+                    {providerId === "openai"
+                      ? "OpenAI"
+                      : providerId === "anthropic"
+                        ? "Anthropic"
+                        : providerId === "groq"
+                          ? "Groq"
+                          : "Custom"}
+                  </button>
+                )
+              )}
             </div>
           </div>
+
+          {provider === "custom" && (
+            <div className="flex flex-col gap-2">
+              <label htmlFor="base-url" className={labelClasses}>
+                {t.baseUrl}
+              </label>
+              <input
+                id="base-url"
+                type="url"
+                value={baseUrls.custom ?? ""}
+                onChange={(event) =>
+                  onBaseUrlsChange({
+                    ...baseUrls,
+                    custom: event.target.value,
+                  })
+                }
+                placeholder={t.baseUrlPlaceholder}
+                autoComplete="off"
+                spellCheck={false}
+                dir="ltr"
+                className={`${inputClasses} font-mono text-xs`}
+              />
+              <p className="text-xs leading-5 text-muted">
+                {t.customBaseUrlHint}
+              </p>
+            </div>
+          )}
 
           <div className="flex flex-col gap-2">
             <label htmlFor="api-key" className={labelClasses}>

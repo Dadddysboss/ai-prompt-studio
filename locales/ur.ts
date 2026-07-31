@@ -49,6 +49,10 @@ export const ur: Dictionary = {
   model: "ماڈل",
   apiKey: "API کلید",
   apiKeyPlaceholder: "اپنی API کلید چسپاں کریں",
+  baseUrl: "بیس URL",
+  baseUrlPlaceholder: "https://api.deepseek.com/v1/chat/completions",
+  customBaseUrlHint:
+    "OpenAI-مطابق اینڈ پوائنٹ — DeepSeek، OpenCode پراکسی، vLLM، LM Studio وغیرہ۔",
   syncingModels: "ماڈلز حاصل ہو رہے ہیں...",
   modelsFetchError:
     "اس کلید کے لیے ماڈلز حاصل نہیں ہو سکے — مقبول ڈیفالٹس دکھائے جا رہے ہیں۔",

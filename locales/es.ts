@@ -49,6 +49,10 @@ export const es: Dictionary = {
   model: "Modelo",
   apiKey: "Clave API",
   apiKeyPlaceholder: "Pega tu clave API",
+  baseUrl: "URL base",
+  baseUrlPlaceholder: "https://api.deepseek.com/v1/chat/completions",
+  customBaseUrlHint:
+    "Endpoint compatible con OpenAI — DeepSeek, proxy OpenCode, vLLM, LM Studio, etc.",
   syncingModels: "Obteniendo modelos...",
   modelsFetchError:
     "No se pudieron cargar los modelos de esta clave — mostrando los populares por defecto.",

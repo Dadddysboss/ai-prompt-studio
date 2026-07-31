@@ -79,7 +79,7 @@ export default function Playground({ prompt }: PlaygroundProps) {
   const [provider, setProvider] = useState<AIProvider>("openai");
   const [keys, setKeys] = useLocalStorage<Record<AIProvider, string>>(
     "aiKeys",
-    { openai: "", anthropic: "", groq: "" }
+    { openai: "", anthropic: "", groq: "", custom: "" }
   );
   const [models, setModels] = useLocalStorage<Record<AIProvider, string>>(
     "aiModels",
@@ -87,7 +87,12 @@ export default function Playground({ prompt }: PlaygroundProps) {
       openai: "gpt-4o",
       anthropic: "claude-3-5-sonnet-latest",
       groq: "llama-3.3-70b-versatile",
+      custom: "deepseek-chat",
     }
+  );
+  const [baseUrls, setBaseUrls] = useLocalStorage<Record<AIProvider, string>>(
+    "aiBaseUrls",
+    { openai: "", anthropic: "", groq: "", custom: "" }
   );
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [customModels, setCustomModels] = useState<
@@ -191,6 +196,7 @@ export default function Playground({ prompt }: PlaygroundProps) {
           provider,
           model,
           apiKey: key,
+          baseUrl: provider === "custom" ? baseUrls.custom?.trim() : undefined,
         }),
         signal: controller.signal,
       });
@@ -404,9 +410,11 @@ export default function Playground({ prompt }: PlaygroundProps) {
         onProviderChange={setProvider}
         keys={keys}
         models={models}
+        baseUrls={baseUrls}
         customModels={customModels}
         onKeysChange={setKeys}
         onModelsChange={setModels}
+        onBaseUrlsChange={setBaseUrls}
         onModelsFetched={handleModelsFetched}
         onClose={() => setSettingsOpen(false)}
         onSaved={() => showToast(t.keySaved, "success")}
