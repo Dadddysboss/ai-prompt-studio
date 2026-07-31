@@ -173,30 +173,38 @@ export default function AiSettingsDrawer({
         >
           <div className="flex flex-col gap-2">
             <span className={labelClasses}>{t.provider}</span>
-            <div className="grid grid-cols-4 gap-1 rounded-full border border-edge bg-background p-1">
-              {(["openai", "anthropic", "groq", "custom"] as AIProvider[]).map(
-                (providerId) => (
-                  <button
-                    key={providerId}
-                    type="button"
-                    onClick={() => onProviderChange(providerId)}
-                    aria-pressed={provider === providerId}
-                    className={`truncate rounded-full px-2 py-2 text-xs font-medium transition-all duration-300 ${
-                      provider === providerId
-                        ? "bg-accent text-white"
-                        : "text-muted hover:text-foreground"
-                    }`}
-                  >
-                    {providerId === "openai"
-                      ? "OpenAI"
-                      : providerId === "anthropic"
-                        ? "Anthropic"
-                        : providerId === "groq"
-                          ? "Groq"
+            <div className="grid grid-cols-5 gap-1 rounded-full border border-edge bg-background p-1">
+              {(
+                [
+                  "openai",
+                  "anthropic",
+                  "groq",
+                  "deepseek",
+                  "custom",
+                ] as AIProvider[]
+              ).map((providerId) => (
+                <button
+                  key={providerId}
+                  type="button"
+                  onClick={() => onProviderChange(providerId)}
+                  aria-pressed={provider === providerId}
+                  className={`truncate rounded-full px-1 py-2 text-xs font-medium transition-all duration-300 ${
+                    provider === providerId
+                      ? "bg-accent text-white"
+                      : "text-muted hover:text-foreground"
+                  }`}
+                >
+                  {providerId === "openai"
+                    ? "OpenAI"
+                    : providerId === "anthropic"
+                      ? "Anthropic"
+                      : providerId === "groq"
+                        ? "Groq"
+                        : providerId === "deepseek"
+                          ? "DeepSeek"
                           : "Custom"}
-                  </button>
-                )
-              )}
+                </button>
+              ))}
             </div>
           </div>
 

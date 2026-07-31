@@ -1,11 +1,8 @@
 import {
+  getProviderMeta,
   resolveModelsUrl,
   type AIProvider,
 } from "@/types/ai";
-import {
-  buildEndpointHint,
-  extractUpstreamError,
-} from "@/lib/aiUpstream";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -21,6 +18,7 @@ function isAIProvider(value: unknown): value is AIProvider {
     value === "openai" ||
     value === "anthropic" ||
     value === "groq" ||
+    value === "deepseek" ||
     value === "custom"
   );
 }
@@ -69,6 +67,12 @@ export async function POST(request: Request) {
 
   const modelsUrl = resolveModelsUrl(provider, baseUrl);
 
+  const fallback = () =>
+    Response.json({
+      models: getProviderMeta(provider).models,
+      fallback: true,
+    });
+
   try {
     const res = await fetch(modelsUrl, {
       method: "GET",
@@ -77,12 +81,7 @@ export async function POST(request: Request) {
     });
 
     if (!res.ok) {
-      const { status, message } = await extractUpstreamError(
-        res,
-        modelsUrl,
-        buildEndpointHint(modelsUrl, "models")
-      );
-      return Response.json({ error: message }, { status });
+      return fallback();
     }
 
     const json = (await res.json()) as { data?: { id?: unknown }[] } | null;
@@ -95,15 +94,12 @@ export async function POST(request: Request) {
     }
     ids.sort();
 
+    if (ids.length === 0) return fallback();
+
     return Response.json({
       models: ids.map((id) => ({ id, label: id })),
     });
   } catch {
-    return Response.json(
-      {
-        error: `Could not reach the models endpoint "${modelsUrl}". Verify the Base URL in Settings and your network connection.`,
-      },
-      { status: 502 }
-    );
+    return fallback();
   }
 }

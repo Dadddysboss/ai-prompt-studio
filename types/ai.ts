@@ -1,4 +1,9 @@
-export type AIProvider = "openai" | "anthropic" | "groq" | "custom";
+export type AIProvider =
+  | "openai"
+  | "anthropic"
+  | "groq"
+  | "deepseek"
+  | "custom";
 
 export interface AIModelOption {
   id: string;
@@ -60,6 +65,15 @@ export const AI_PROVIDERS: AIProviderMeta[] = [
     ],
   },
   {
+    id: "deepseek",
+    endpoint: "https://api.deepseek.com/chat/completions",
+    defaultModel: "deepseek-chat",
+    models: [
+      { id: "deepseek-chat", label: "DeepSeek Chat (V3)" },
+      { id: "deepseek-reasoner", label: "DeepSeek Reasoner (R1)" },
+    ],
+  },
+  {
     id: "custom",
     endpoint: CUSTOM_BASE_URL,
     defaultModel: "deepseek-chat",
@@ -117,6 +131,9 @@ export function resolveModelsUrl(
   provider: AIProvider,
   baseUrl: string | undefined
 ): string {
+  if (provider === "deepseek" && !baseUrl?.trim()) {
+    return "https://api.deepseek.com/models";
+  }
   const meta = getProviderMeta(provider);
   const base = baseUrl?.trim()
     ? stripTrailingSlashes(baseUrl).replace(/\/chat\/completions$/, "")

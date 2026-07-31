@@ -109,7 +109,7 @@ export default function Playground({ prompt }: PlaygroundProps) {
   const [provider, setProvider] = useState<AIProvider>("openai");
   const [keys, setKeys] = useLocalStorage<Record<AIProvider, string>>(
     "aiKeys",
-    { openai: "", anthropic: "", groq: "", custom: "" }
+    { openai: "", anthropic: "", groq: "", deepseek: "", custom: "" }
   );
   const [models, setModels] = useLocalStorage<Record<AIProvider, string>>(
     "aiModels",
@@ -117,12 +117,13 @@ export default function Playground({ prompt }: PlaygroundProps) {
       openai: "gpt-4o",
       anthropic: "claude-3-5-sonnet-latest",
       groq: "llama-3.3-70b-versatile",
+      deepseek: "deepseek-chat",
       custom: "deepseek-chat",
     }
   );
   const [baseUrls, setBaseUrls] = useLocalStorage<Record<AIProvider, string>>(
     "aiBaseUrls",
-    { openai: "", anthropic: "", groq: "", custom: "" }
+    { openai: "", anthropic: "", groq: "", deepseek: "", custom: "" }
   );
   const [agentMode, setAgentMode] = useLocalStorage<AgentModeId>(
     "aiMode",

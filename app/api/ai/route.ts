@@ -25,6 +25,7 @@ function isAIProvider(value: unknown): value is AIProvider {
     value === "openai" ||
     value === "anthropic" ||
     value === "groq" ||
+    value === "deepseek" ||
     value === "custom"
   );
 }
