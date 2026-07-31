@@ -124,9 +124,9 @@ function HomeContent() {
         onImport={handleImport}
       />
 
-      <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-8 px-6 py-8">
+      <main className="mx-auto flex min-w-0 w-full max-w-5xl flex-1 flex-col gap-8 px-4 py-8 sm:px-6">
         {prompts.length === 0 ? (
-          <section className="flex flex-1 flex-col items-center justify-center gap-6 rounded-card border border-edge bg-surface/90 p-12 text-center shadow-2xl shadow-black/40">
+          <section className="flex flex-1 flex-col items-center justify-center gap-6 rounded-card border border-edge bg-surface/90 p-6 text-center shadow-2xl shadow-black/40 sm:p-12">
             <span className="flex h-16 w-16 items-center justify-center rounded-full border border-edge bg-surface">
               <Sparkles size={28} className="text-accent" />
             </span>
@@ -148,7 +148,7 @@ function HomeContent() {
             </button>
           </section>
         ) : filteredPrompts.length === 0 ? (
-          <section className="flex flex-1 flex-col items-center justify-center gap-6 rounded-card border border-edge bg-surface/90 p-12 text-center shadow-2xl shadow-black/40">
+          <section className="flex flex-1 flex-col items-center justify-center gap-6 rounded-card border border-edge bg-surface/90 p-6 text-center shadow-2xl shadow-black/40 sm:p-12">
             <span className="flex h-16 w-16 items-center justify-center rounded-full border border-edge bg-surface">
               <SearchX size={28} className="text-muted" />
             </span>
@@ -170,7 +170,7 @@ function HomeContent() {
           </section>
         ) : (
           <>
-            <section className="grid gap-6 md:grid-cols-2">
+            <section className="grid min-w-0 gap-6 md:grid-cols-2">
               {filteredPrompts.map((prompt) => (
                 <PromptCard
                   key={prompt.id}

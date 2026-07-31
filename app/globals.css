@@ -31,10 +31,18 @@
 @layer base {
   html {
     color-scheme: dark;
+    overflow-x: clip;
   }
 
   body {
     @apply bg-background font-sans text-foreground antialiased;
+    overflow-x: clip;
+    width: 100%;
+  }
+
+  pre,
+  code {
+    max-width: 100%;
   }
 
   ::selection {

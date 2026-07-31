@@ -49,14 +49,14 @@ export default function PromptCard({
   return (
     <article
       onClick={() => onSelect?.(prompt)}
-      className={`group flex flex-col gap-4 rounded-card border bg-surface/90 p-6 shadow-2xl shadow-black/40 backdrop-blur-sm transition-all duration-300 ${
+      className={`group flex min-w-0 max-w-full flex-col gap-4 rounded-card border bg-surface/90 p-6 shadow-2xl shadow-black/40 backdrop-blur-sm transition-all duration-300 ${
         active
           ? "border-accent/70 ring-1 ring-accent/50"
           : "border-edge hover:border-zinc-700 hover:bg-surface"
       } ${onSelect ? "cursor-pointer" : ""}`}
     >
       <div className="flex items-start justify-between gap-4">
-        <h3 className="text-base font-semibold text-foreground">
+        <h3 className="min-w-0 truncate text-base font-semibold text-foreground">
           {prompt.title}
         </h3>
         <span className="shrink-0 text-xs text-muted">
@@ -73,7 +73,7 @@ export default function PromptCard({
 
       <p className="text-sm leading-6 text-muted">{prompt.description}</p>
 
-      <pre className="line-clamp-3 rounded-card-sm border border-edge bg-black/50 p-4 text-xs leading-5 text-zinc-400">
+      <pre className="line-clamp-3 max-w-full break-words whitespace-pre-wrap rounded-card-sm border border-edge bg-black/50 p-4 text-xs leading-5 text-zinc-400">
         <code>{prompt.systemPrompt}</code>
       </pre>
 

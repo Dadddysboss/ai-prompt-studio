@@ -71,9 +71,9 @@ export default function Navbar({
 
   return (
     <header className="sticky top-0 z-40 border-b border-edge bg-background/80 backdrop-blur-xl">
-      <div className="mx-auto flex w-full max-w-5xl flex-col gap-4 px-6 py-4">
-        <div className="flex flex-wrap items-center gap-3">
-          <h1 className="me-auto text-xl font-semibold tracking-tight text-foreground">
+      <div className="mx-auto flex w-full max-w-5xl flex-col gap-4 px-4 py-4 sm:px-6">
+        <div className="flex min-w-0 flex-wrap items-center gap-3">
+          <h1 className="me-auto min-w-0 truncate text-xl font-semibold tracking-tight text-foreground">
             {t.appTitle}
           </h1>
 

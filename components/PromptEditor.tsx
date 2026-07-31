@@ -92,7 +92,7 @@ function EditorForm({
 
   return (
     <>
-      <div className="flex items-center justify-between border-b border-edge px-8 py-6">
+      <div className="flex shrink-0 items-center justify-between gap-4 border-b border-edge px-5 py-6 sm:px-8">
         <h2 className="flex items-center gap-2 text-lg font-semibold text-foreground">
           <Sparkles size={18} className="text-accent" />
           {initial ? t.editPrompt : t.newPrompt}
@@ -107,7 +107,7 @@ function EditorForm({
         </button>
       </div>
 
-      <div className="flex flex-1 flex-col gap-5 overflow-y-auto px-8 py-6">
+      <div className="flex min-w-0 flex-1 flex-col gap-5 overflow-y-auto px-5 py-6 sm:px-8">
         <div className="flex flex-col gap-2">
           <label htmlFor="prompt-title" className={labelClasses}>
             {t.title}
@@ -199,7 +199,7 @@ function EditorForm({
         </div>
       </div>
 
-      <div className="flex items-center justify-end gap-2 border-t border-edge px-8 py-6">
+      <div className="flex shrink-0 items-center justify-end gap-2 border-t border-edge px-5 py-6 sm:px-8">
           <button
             type="button"
             onClick={onClose}
@@ -259,7 +259,7 @@ export default function PromptEditor({
       />
 
       <aside
-        className={`absolute right-0 top-0 flex h-full w-full max-w-xl flex-col rounded-l-[28px] border-l border-edge bg-surface shadow-2xl shadow-black/60 transition-transform duration-300 ease-out ${
+        className={`absolute right-0 top-0 flex h-full w-full max-w-full flex-col overflow-hidden rounded-l-[28px] border-l border-edge bg-surface shadow-2xl shadow-black/60 transition-transform duration-300 ease-out sm:max-w-xl ${
           open ? "translate-x-0" : "translate-x-full"
         }`}
         role="dialog"

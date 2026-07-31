@@ -258,9 +258,9 @@ export default function Playground({ prompt }: PlaygroundProps) {
   };
 
   return (
-    <section className="flex flex-col gap-6 rounded-card border border-edge bg-surface/90 p-8 shadow-2xl shadow-black/40 backdrop-blur-sm">
+    <section className="flex min-w-0 max-w-full flex-col gap-6 rounded-card border border-edge bg-surface/90 p-6 shadow-2xl shadow-black/40 backdrop-blur-sm sm:p-8">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <h2 className="flex items-center gap-2 text-lg font-semibold text-foreground">
+        <h2 className="flex min-w-0 items-center gap-2 text-lg font-semibold text-foreground">
           <Braces size={18} className="text-accent" />
           {t.playground}
         </h2>
@@ -303,7 +303,7 @@ export default function Playground({ prompt }: PlaygroundProps) {
       {variables.length === 0 ? (
         <div className="flex flex-col items-start gap-3 rounded-card-sm border border-dashed border-edge bg-black/30 p-6">
           <p className="text-sm leading-6 text-muted">{t.noVarsBody}</p>
-          <code className="rounded-full border border-edge bg-surface px-4 py-1.5 font-mono text-sm text-accent">
+          <code className="max-w-full break-all rounded-full border border-edge bg-surface px-4 py-1.5 font-mono text-sm text-accent">
             {"You are a {{role}} expert writing for {{audience}}."}
           </code>
           <p className="text-xs leading-5 text-muted">{t.noVarsHint}</p>
@@ -312,8 +312,8 @@ export default function Playground({ prompt }: PlaygroundProps) {
         <>
           <div className="grid gap-4 sm:grid-cols-2">
             {variables.map((name) => (
-              <label key={name} className="flex flex-col gap-2">
-                <span className={`font-mono ${labelClasses} text-accent`}>
+              <label key={name} className="flex min-w-0 flex-col gap-2">
+                <span className={`font-mono ${labelClasses} truncate text-accent`}>
                   {`{{${name}}}`}
                 </span>
                 <input
@@ -334,7 +334,7 @@ export default function Playground({ prompt }: PlaygroundProps) {
 
           <div className="flex flex-col gap-2">
             <span className={labelClasses}>{t.compiledOutput}</span>
-            <pre className="max-h-96 overflow-y-auto whitespace-pre-wrap rounded-card-sm border border-edge bg-black/50 p-6 font-mono text-sm leading-6 text-zinc-300">
+            <pre className="max-h-96 max-w-full overflow-auto break-words whitespace-pre-wrap rounded-card-sm border border-edge bg-black/50 p-6 font-mono text-sm leading-6 text-zinc-300">
               <code>{compiled}</code>
             </pre>
           </div>
@@ -353,7 +353,7 @@ export default function Playground({ prompt }: PlaygroundProps) {
                 </button>
               )}
             </div>
-            <pre className="min-h-32 max-h-96 overflow-y-auto whitespace-pre-wrap rounded-card-sm border border-edge bg-black/50 p-6 text-sm leading-6 text-zinc-200">
+            <pre className="min-h-32 max-h-96 max-w-full overflow-auto break-words whitespace-pre-wrap rounded-card-sm border border-edge bg-black/50 p-6 text-sm leading-6 text-zinc-200">
               <code>
                 {response
                   ? response
@@ -415,7 +415,7 @@ export default function Playground({ prompt }: PlaygroundProps) {
       {toast && (
         <div
           role="status"
-          className={`fixed bottom-6 left-1/2 z-[60] -translate-x-1/2 rounded-full border px-5 py-3 text-sm font-medium shadow-2xl shadow-black/60 backdrop-blur-xl ${
+          className={`fixed bottom-6 left-1/2 z-[60] max-w-[calc(100vw-2rem)] -translate-x-1/2 truncate rounded-full border px-5 py-3 text-sm font-medium shadow-2xl shadow-black/60 backdrop-blur-xl ${
             toast.tone === "error"
               ? "border-red-500/40 bg-red-500/10 text-red-300"
               : "border-edge bg-surface/95 text-foreground"
