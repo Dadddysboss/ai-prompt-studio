@@ -1,17 +1,31 @@
 "use client";
 
 import {
+  ArrowDown,
+  ArrowUp,
   Braces,
   Check,
+  ChevronDown,
+  Code2,
   Coins,
   Copy,
   Play,
   Settings,
   Square,
+  Trash2,
+  Workflow,
   X,
 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  Fragment,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import AiSettingsDrawer from "@/components/AiSettingsDrawer";
+import CodeExportModal from "@/components/CodeExportModal";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { useLanguage } from "@/locales/LanguageProvider";
 import { format } from "@/locales/index";
@@ -41,6 +55,17 @@ interface ToastState {
 }
 
 const VARIABLE_REGEX = /\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g;
+const PREV_REGEX = /\{\{\s*prev\s*\}\}/gi;
+
+const STEP_ID = () =>
+  typeof crypto !== "undefined" && "randomUUID" in crypto
+    ? crypto.randomUUID()
+    : `step-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
+interface WorkflowStep {
+  id: string;
+  prompt: string;
+}
 
 const MODELS: Model[] = [
   { name: "GPT-4o", inputRatePerMillion: 2.5 },
@@ -103,6 +128,18 @@ export default function Playground({ prompt }: PlaygroundProps) {
     "aiMode",
     "auto"
   );
+  const [flowMode, setFlowMode] = useLocalStorage<"single" | "workflow">(
+    "flowMode",
+    "single"
+  );
+  const [workflow, setWorkflow] = useLocalStorage<WorkflowStep[]>(
+    "aiWorkflow",
+    [{ id: STEP_ID(), prompt: "" }]
+  );
+  const [stepOutputs, setStepOutputs] = useState<Record<string, string>>({});
+  const stepOutputRef = useRef<Record<string, string>>({});
+  const [workflowRunning, setWorkflowRunning] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [customModels, setCustomModels] = useState<
     Partial<Record<AIProvider, AIModelOption[]>>
@@ -181,6 +218,101 @@ export default function Playground({ prompt }: PlaygroundProps) {
     [setModels]
   );
 
+  const streamChat = useCallback(
+    async (
+      promptText: string,
+      onDelta: (delta: string) => void
+    ): Promise<string> => {
+      const key = (keys[provider] ?? "").trim();
+      const controller = new AbortController();
+      abortRef.current = controller;
+      let full = "";
+
+      try {
+        const res = await fetch("/api/ai", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            prompt: promptText,
+            provider,
+            model:
+              models[provider] ?? getProviderMeta(provider).defaultModel,
+            apiKey: key,
+            baseUrl: baseUrls[provider]?.trim() || undefined,
+            system: getAgentMode(agentMode).system,
+          }),
+          signal: controller.signal,
+        });
+
+        if (!res.ok || !res.body) {
+          let message = `${res.status} ${res.statusText}`;
+          try {
+            const errorJson = (await res.json()) as { error?: string };
+            if (errorJson?.error) {
+              message = errorJson.error;
+            }
+          } catch {
+            // Response body is not JSON.
+          }
+          throw new ApiRequestError(message);
+        }
+
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+
+          const lines = buffer.split("\n");
+          buffer = lines.pop() ?? "";
+
+          for (const line of lines) {
+            const trimmed = line.trim();
+            if (!trimmed.startsWith("data:")) continue;
+            const payload = trimmed.slice(5).trim();
+            if (!payload || payload === "[DONE]") continue;
+
+            let json: Record<string, unknown>;
+            try {
+              json = JSON.parse(payload) as Record<string, unknown>;
+            } catch {
+              continue;
+            }
+
+            if (json.error) {
+              const message =
+                (json.error as { message?: string }).message ??
+                "Unknown API error";
+              throw new ApiRequestError(message);
+            }
+
+            const delta = extractDelta(json);
+            if (delta) {
+              full += delta;
+              onDelta(delta);
+            }
+          }
+        }
+
+        return full;
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") {
+          throw error;
+        }
+        const message =
+          error instanceof ApiRequestError ? error.message : t.networkError;
+        showToast(format(t.apiError, { message }), "error");
+        throw error;
+      } finally {
+        if (abortRef.current === controller) abortRef.current = null;
+      }
+    },
+    [provider, models, keys, baseUrls, agentMode, t]
+  );
+
   const handleRun = async () => {
     const key = (keys[provider] ?? "").trim();
     if (!key) {
@@ -189,88 +321,89 @@ export default function Playground({ prompt }: PlaygroundProps) {
     }
     if (!compiled.trim()) return;
 
-    const model = models[provider] ?? getProviderMeta(provider).defaultModel;
-    const controller = new AbortController();
-    abortRef.current = controller;
-
     setRunning(true);
     setResponse("");
 
     try {
-      const res = await fetch("/api/ai", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          prompt: compiled,
-          provider,
-          model,
-          apiKey: key,
-          baseUrl: baseUrls[provider]?.trim() || undefined,
-          system: getAgentMode(agentMode).system,
-        }),
-        signal: controller.signal,
-      });
-
-      if (!res.ok || !res.body) {
-        let message = `${res.status} ${res.statusText}`;
-        try {
-          const errorJson = (await res.json()) as { error?: string };
-          if (errorJson?.error) {
-            message = errorJson.error;
-          }
-        } catch {
-          // Response body is not JSON.
-        }
-        throw new ApiRequestError(message);
-      }
-
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = "";
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-
-        const lines = buffer.split("\n");
-        buffer = lines.pop() ?? "";
-
-        for (const line of lines) {
-          const trimmed = line.trim();
-          if (!trimmed.startsWith("data:")) continue;
-          const payload = trimmed.slice(5).trim();
-          if (!payload || payload === "[DONE]") continue;
-
-          let json: Record<string, unknown>;
-          try {
-            json = JSON.parse(payload) as Record<string, unknown>;
-          } catch {
-            continue;
-          }
-
-          if (json.error) {
-            const message =
-              (json.error as { message?: string }).message ??
-              "Unknown API error";
-            throw new ApiRequestError(message);
-          }
-
-          const delta = extractDelta(json);
-          if (delta) setResponse((prev) => prev + delta);
-        }
-      }
-    } catch (error) {
-      if (error instanceof DOMException && error.name === "AbortError") {
-        return;
-      }
-      const message =
-        error instanceof ApiRequestError ? error.message : t.networkError;
-      showToast(format(t.apiError, { message }), "error");
+      await streamChat(compiled, (delta) =>
+        setResponse((prev) => prev + delta)
+      );
+    } catch {
+      // Abort or error — toast already handled inside streamChat.
     } finally {
       setRunning(false);
-      abortRef.current = null;
     }
+  };
+
+  const handleRunWorkflow = async () => {
+    const key = (keys[provider] ?? "").trim();
+    if (!key) {
+      showToast(t.missingKey, "error");
+      return;
+    }
+
+    setWorkflowRunning(true);
+    setStepOutputs({});
+    stepOutputRef.current = {};
+
+    try {
+      let prev = "";
+      for (const step of workflow) {
+        if (!step.prompt.trim()) continue;
+        const filled = step.prompt
+          .replace(
+            VARIABLE_REGEX,
+            (placeholder, name: string) =>
+              (values[name] ?? "").trim() || placeholder
+          )
+          .replace(PREV_REGEX, prev);
+
+        await streamChat(filled, (delta) => {
+          stepOutputRef.current[step.id] =
+            (stepOutputRef.current[step.id] ?? "") + delta;
+          setStepOutputs((current) => ({
+            ...current,
+            [step.id]: stepOutputRef.current[step.id],
+          }));
+        });
+
+        prev = stepOutputRef.current[step.id] ?? "";
+      }
+    } catch {
+      // Abort or error — stop the chain.
+    } finally {
+      setWorkflowRunning(false);
+    }
+  };
+
+  const copyStepOutput = async (id: string) => {
+    try {
+      const text = stepOutputRef.current[id] ?? "";
+      if (text) await navigator.clipboard.writeText(text);
+    } catch {
+      // Clipboard unavailable — do nothing.
+    }
+  };
+
+  const clearStepOutput = (id: string) => {
+    stepOutputRef.current[id] = "";
+    setStepOutputs((prev) => ({ ...prev, [id]: "" }));
+  };
+
+  const moveStep = (index: number, direction: -1 | 1) => {
+    setWorkflow((prev) => {
+      const next = [...prev];
+      const target = index + direction;
+      if (target < 0 || target >= next.length) return prev;
+      [next[index], next[target]] = [next[target], next[index]];
+      return next;
+    });
+  };
+
+  const removeStep = (index: number) => {
+    setWorkflow((prev) =>
+      prev.length > 1 ? prev.filter((_, i) => i !== index) : prev
+    );
   };
 
   return (
@@ -283,27 +416,49 @@ export default function Playground({ prompt }: PlaygroundProps) {
         <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
-            onClick={running ? handleStop : handleRun}
+            onClick={
+              flowMode === "workflow"
+                ? workflowRunning
+                  ? handleStop
+                  : handleRunWorkflow
+                : running
+                  ? handleStop
+                  : handleRun
+            }
             className={`inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-medium transition-all duration-300 ${
-              running
+              running || workflowRunning
                 ? "border border-red-500/40 bg-red-500/10 text-red-300 hover:bg-red-500/20"
                 : "bg-accent text-white hover:bg-accent-hover"
             }`}
           >
-            {running ? <Square size={14} /> : <Play size={14} />}
-            {running ? t.stop : t.runLive}
+            {running || workflowRunning ? <Square size={14} /> : <Play size={14} />}
+            {running || workflowRunning
+              ? t.stop
+              : flowMode === "workflow"
+                ? t.runWorkflow
+                : t.runLive}
           </button>
+          {flowMode === "single" && (
+            <button
+              type="button"
+              onClick={handleCopy}
+              className={`inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-medium transition-all duration-300 ${
+                copied
+                  ? "bg-accent text-white"
+                  : "border border-edge text-foreground hover:bg-surface-hover"
+              }`}
+            >
+              {copied ? <Check size={14} /> : <Copy size={14} />}
+              {copied ? t.copied : t.copyPrompt}
+            </button>
+          )}
           <button
             type="button"
-            onClick={handleCopy}
-            className={`inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-medium transition-all duration-300 ${
-              copied
-                ? "bg-accent text-white"
-                : "border border-edge text-foreground hover:bg-surface-hover"
-            }`}
+            onClick={() => setExportOpen(true)}
+            className="inline-flex items-center gap-2 rounded-full border border-edge px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-surface-hover"
           >
-            {copied ? <Check size={14} /> : <Copy size={14} />}
-            {copied ? t.copied : t.copyPrompt}
+            <Code2 size={14} />
+            {t.exportCode}
           </button>
           <button
             type="button"
@@ -314,6 +469,51 @@ export default function Playground({ prompt }: PlaygroundProps) {
             <Settings size={16} />
           </button>
         </div>
+      </div>
+
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-1 rounded-full border border-edge bg-background p-1">
+          {(
+            [
+              { id: "single", label: t.flowSingle },
+              { id: "workflow", label: t.flowWorkflow },
+            ] as const
+          ).map((mode) => (
+            <button
+              key={mode.id}
+              type="button"
+              onClick={() => setFlowMode(mode.id)}
+              aria-pressed={flowMode === mode.id}
+              className={`inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-medium transition-all duration-300 ${
+                flowMode === mode.id
+                  ? "bg-accent text-white"
+                  : "text-muted hover:text-foreground"
+              }`}
+            >
+              {mode.id === "workflow" ? (
+                <Workflow size={13} />
+              ) : (
+                <Braces size={13} />
+              )}
+              {mode.label}
+            </button>
+          ))}
+        </div>
+        {flowMode === "workflow" && (
+          <button
+            type="button"
+            onClick={() =>
+              setWorkflow((prev) => [
+                ...prev,
+                { id: STEP_ID(), prompt: "" },
+              ])
+            }
+            className="inline-flex items-center gap-1.5 rounded-full border border-edge px-4 py-2 text-xs font-medium text-foreground transition-colors hover:bg-surface-hover"
+          >
+            <ChevronDown size={13} className="rotate-180" />
+            {t.addStep}
+          </button>
+        )}
       </div>
 
       <div className="flex flex-col gap-2">
@@ -346,7 +546,124 @@ export default function Playground({ prompt }: PlaygroundProps) {
         </p>
       </div>
 
-      {variables.length === 0 ? (
+      {flowMode === "workflow" ? (
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center gap-2">
+            <Workflow size={16} className="text-accent" />
+            <span className={labelClasses}>{t.workflowTitle}</span>
+          </div>
+          <p className="text-xs leading-5 text-muted">{t.prevHint}</p>
+
+          <div className="flex flex-col">
+            {workflow.map((step, index) => (
+              <Fragment key={step.id}>
+                {index > 0 && (
+                  <div className="flex flex-col items-center gap-1 py-1">
+                    <span className="h-3 w-px bg-edge" />
+                    <ChevronDown size={16} className="text-accent" />
+                    <span className="h-3 w-px bg-edge" />
+                  </div>
+                )}
+                <div className="flex flex-col gap-3 rounded-card-sm border border-edge bg-background/50 p-4">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex min-w-0 items-center gap-2">
+                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-accent-soft text-xs font-bold text-accent">
+                        {index + 1}
+                      </span>
+                      <span className={labelClasses}>
+                        {format(t.stepLabel, { index: index + 1 })}
+                      </span>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => moveStep(index, -1)}
+                        disabled={index === 0 || workflowRunning}
+                        aria-label={t.moveUp}
+                        className="rounded-full border border-edge p-1.5 text-muted transition-colors hover:bg-surface-hover hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
+                      >
+                        <ArrowUp size={14} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => moveStep(index, 1)}
+                        disabled={
+                          index === workflow.length - 1 || workflowRunning
+                        }
+                        aria-label={t.moveDown}
+                        className="rounded-full border border-edge p-1.5 text-muted transition-colors hover:bg-surface-hover hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
+                      >
+                        <ArrowDown size={14} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => removeStep(index)}
+                        disabled={workflow.length <= 1 || workflowRunning}
+                        aria-label={t.removeStep}
+                        className="rounded-full border border-edge p-1.5 text-muted transition-colors hover:bg-surface-hover hover:text-red-400 disabled:cursor-not-allowed disabled:opacity-40"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </div>
+
+                  <textarea
+                    value={step.prompt}
+                    onChange={(event) =>
+                      setWorkflow((prev) =>
+                        prev.map((item) =>
+                          item.id === step.id
+                            ? { ...item, prompt: event.target.value }
+                            : item
+                        )
+                      )
+                    }
+                    placeholder={
+                      index === 0 ? t.stepFirstPlaceholder : t.prevHint
+                    }
+                    rows={3}
+                    className="min-h-24 w-full resize-y rounded-2xl border border-edge bg-background px-4 py-3 font-mono text-xs leading-5 text-foreground placeholder:text-muted transition-colors focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
+                  />
+
+                  <div className="flex items-center justify-between gap-2">
+                    <span className={labelClasses}>{t.stepOutput}</span>
+                    {stepOutputs[step.id] && !workflowRunning && (
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => copyStepOutput(step.id)}
+                          className="inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium text-muted transition-colors hover:bg-surface-hover hover:text-foreground"
+                        >
+                          <Copy size={12} />
+                          {t.copyOutput}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => clearStepOutput(step.id)}
+                          className="inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium text-muted transition-colors hover:bg-surface-hover hover:text-foreground"
+                        >
+                          <X size={12} />
+                          {t.clearOutput}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                  <pre className="min-h-12 max-h-48 max-w-full overflow-auto break-words whitespace-pre-wrap rounded-card-sm border border-edge bg-black/50 p-4 text-xs leading-5 text-zinc-200">
+                    {stepOutputs[step.id]
+                      ? stepOutputs[step.id]
+                      : workflowRunning
+                        ? t.thinking
+                        : t.noOutput}
+                    {workflowRunning && stepOutputs[step.id] && (
+                      <span className="animate-pulse text-accent">{" ▌"}</span>
+                    )}
+                  </pre>
+                </div>
+              </Fragment>
+            ))}
+          </div>
+        </div>
+      ) : variables.length === 0 ? (
         <div className="flex flex-col items-start gap-3 rounded-card-sm border border-dashed border-edge bg-black/30 p-6">
           <p className="text-sm leading-6 text-muted">{t.noVarsBody}</p>
           <code className="max-w-full break-all rounded-full border border-edge bg-surface px-4 py-1.5 font-mono text-sm text-accent">
@@ -458,6 +775,17 @@ export default function Playground({ prompt }: PlaygroundProps) {
         onModelsFetched={handleModelsFetched}
         onClose={() => setSettingsOpen(false)}
         onSaved={() => showToast(t.keySaved, "success")}
+      />
+
+      <CodeExportModal
+        open={exportOpen}
+        onClose={() => setExportOpen(false)}
+        provider={provider}
+        model={models[provider] ?? getProviderMeta(provider).defaultModel}
+        apiKey={keys[provider] ?? ""}
+        baseUrl={baseUrls[provider] ?? ""}
+        system={getAgentMode(agentMode).system}
+        prompt={compiled}
       />
 
       {toast && (

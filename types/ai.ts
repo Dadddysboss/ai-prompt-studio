@@ -87,3 +87,14 @@ export function classifyModel(
   if (provider === "openai" && /^gpt-oss/i.test(id)) return "free";
   return "paid";
 }
+
+export function resolveChatEndpoint(
+  provider: AIProvider,
+  baseUrl: string | undefined
+): string {
+  const meta = getProviderMeta(provider);
+  if (!baseUrl?.trim()) return meta.endpoint;
+  const trimmed = baseUrl.trim().replace(/\/+$/, "");
+  if (trimmed.endsWith("/chat/completions")) return trimmed;
+  return `${trimmed}/v1/chat/completions`;
+}

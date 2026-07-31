@@ -1,4 +1,8 @@
-import { getProviderMeta, type AIProvider } from "@/types/ai";
+import {
+  getProviderMeta,
+  resolveChatEndpoint,
+  type AIProvider,
+} from "@/types/ai";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -28,17 +32,6 @@ function isHttpUrl(value: string): boolean {
   } catch {
     return false;
   }
-}
-
-function resolveEndpoint(
-  provider: AIProvider,
-  baseUrl: string | undefined
-): string {
-  const meta = getProviderMeta(provider);
-  if (!baseUrl?.trim()) return meta.endpoint;
-  const trimmed = baseUrl.trim().replace(/\/+$/, "");
-  if (trimmed.endsWith("/chat/completions")) return trimmed;
-  return `${trimmed}/v1/chat/completions`;
 }
 
 export async function POST(request: Request) {
@@ -75,7 +68,7 @@ export async function POST(request: Request) {
   }
 
   const providerMeta = getProviderMeta(provider);
-  const endpoint = resolveEndpoint(provider, baseUrl);
+  const endpoint = resolveChatEndpoint(provider, baseUrl);
 
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
