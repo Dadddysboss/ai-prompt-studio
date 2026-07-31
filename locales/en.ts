@@ -48,6 +48,8 @@ export const en = {
   apiKey: "API Key",
   apiKeyPlaceholder: "Paste your API key",
   syncingModels: "Fetching models...",
+  modelsFetchError:
+    "Couldn't load models for this key — showing popular defaults.",
   keyNote:
     "Your key never leaves this browser. It stays in LocalStorage and is sent only to your chosen provider.",
   save: "Save",

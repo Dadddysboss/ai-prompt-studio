@@ -50,6 +50,8 @@ export const es: Dictionary = {
   apiKey: "Clave API",
   apiKeyPlaceholder: "Pega tu clave API",
   syncingModels: "Obteniendo modelos...",
+  modelsFetchError:
+    "No se pudieron cargar los modelos de esta clave — mostrando los populares por defecto.",
   keyNote:
     "Tu clave nunca sale de este navegador. Permanece en LocalStorage y solo se envía al proveedor que elijas.",
   save: "Guardar",

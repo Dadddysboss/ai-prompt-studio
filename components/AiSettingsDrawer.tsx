@@ -47,6 +47,7 @@ export default function AiSettingsDrawer({
   const { t } = useLanguage();
   const [showKey, setShowKey] = useState(false);
   const [fetching, setFetching] = useState(false);
+  const [fetchFailed, setFetchFailed] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -78,6 +79,7 @@ export default function AiSettingsDrawer({
     const controller = new AbortController();
     const timer = window.setTimeout(() => {
       setFetching(true);
+      setFetchFailed(false);
       fetch("/api/ai/models", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -89,13 +91,14 @@ export default function AiSettingsDrawer({
             models?: AIModelOption[];
             error?: string;
           };
-          if (!res.ok || json.error || !json.models) {
+          if (!res.ok || json.error || !json.models || json.models.length === 0) {
             throw new Error(json.error ?? "Failed to fetch models");
           }
           onModelsFetched(provider, json.models);
         })
         .catch(() => {
-          // Fall back to the default model list.
+          if (controller.signal.aborted) return;
+          setFetchFailed(true);
         })
         .finally(() => setFetching(false));
     }, 600);
@@ -242,6 +245,11 @@ export default function AiSettingsDrawer({
                 />
               )}
             </div>
+            {fetchFailed && (
+              <p className="text-xs leading-5 text-red-400/90">
+                {t.modelsFetchError}
+              </p>
+            )}
           </div>
 
           <p className="rounded-card-sm border border-edge bg-black/30 p-4 text-xs leading-5 text-muted">

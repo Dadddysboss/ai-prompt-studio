@@ -12,20 +12,6 @@ function isAIProvider(value: unknown): value is AIProvider {
   return value === "openai" || value === "anthropic" || value === "groq";
 }
 
-function shouldInclude(provider: AIProvider, id: string): boolean {
-  if (provider === "openai") {
-    return /^(gpt-|o1|o3|o4)/.test(id);
-  }
-  return (
-    !id.includes("whisper") &&
-    !id.includes("embedding") &&
-    !id.includes("rerank") &&
-    !id.includes("tts") &&
-    !id.includes("image") &&
-    !id.includes("stt")
-  );
-}
-
 export async function POST(request: Request) {
   let body: ModelsRequestBody;
   try {
@@ -78,14 +64,17 @@ export async function POST(request: Request) {
     }
 
     const json = (await res.json()) as { data?: { id?: unknown }[] } | null;
-    const ids = (json?.data ?? [])
-      .map((entry) => entry.id)
-      .filter((id): id is string => typeof id === "string")
-      .filter((id) => shouldInclude(provider, id))
-      .sort();
+    const seen = new Set<string>();
+    const ids: string[] = [];
+    for (const entry of json?.data ?? []) {
+      if (typeof entry.id !== "string" || seen.has(entry.id)) continue;
+      seen.add(entry.id);
+      ids.push(entry.id);
+    }
+    ids.sort();
 
     return Response.json({
-      models: ids.slice(0, 30).map((id) => ({ id, label: id })),
+      models: ids.map((id) => ({ id, label: id })),
     });
   } catch {
     return Response.json(
