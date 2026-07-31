@@ -49,6 +49,7 @@ export const ur: Dictionary = {
   model: "ماڈل",
   apiKey: "API کلید",
   apiKeyPlaceholder: "اپنی API کلید چسپاں کریں",
+  syncingModels: "ماڈلز حاصل ہو رہے ہیں...",
   keyNote:
     "آپ کی کلید اس براؤزر سے کبھی باہر نہیں جاتی۔ یہ LocalStorage میں رہتی ہے اور صرف آپ کے منتخب کردہ پرووائیڈر کو بھیجی جاتی ہے۔",
   save: "محفوظ کریں",

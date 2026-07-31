@@ -10,12 +10,16 @@ import {
   Square,
   X,
 } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import AiSettingsDrawer from "@/components/AiSettingsDrawer";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { useLanguage } from "@/locales/LanguageProvider";
 import { format } from "@/locales/index";
-import { getProviderMeta, type AIProvider } from "@/types/ai";
+import {
+  getProviderMeta,
+  type AIModelOption,
+  type AIProvider,
+} from "@/types/ai";
 
 interface PlaygroundProps {
   prompt: string;
@@ -86,6 +90,9 @@ export default function Playground({ prompt }: PlaygroundProps) {
     }
   );
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [customModels, setCustomModels] = useState<
+    Partial<Record<AIProvider, AIModelOption[]>>
+  >({});
   const [running, setRunning] = useState(false);
   const [response, setResponse] = useState("");
   const [toast, setToast] = useState<ToastState | null>(null);
@@ -146,6 +153,19 @@ export default function Playground({ prompt }: PlaygroundProps) {
   const handleStop = () => {
     abortRef.current?.abort();
   };
+
+  const handleModelsFetched = useCallback(
+    (provider: AIProvider, fetchedModels: AIModelOption[]) => {
+      setCustomModels((prev) => ({ ...prev, [provider]: fetchedModels }));
+      setModels((prev) =>
+        prev[provider] &&
+        fetchedModels.some((option) => option.id === prev[provider])
+          ? prev
+          : { ...prev, [provider]: fetchedModels[0]?.id ?? prev[provider] }
+      );
+    },
+    [setModels]
+  );
 
   const handleRun = async () => {
     const key = (keys[provider] ?? "").trim();
@@ -384,8 +404,10 @@ export default function Playground({ prompt }: PlaygroundProps) {
         onProviderChange={setProvider}
         keys={keys}
         models={models}
+        customModels={customModels}
         onKeysChange={setKeys}
         onModelsChange={setModels}
+        onModelsFetched={handleModelsFetched}
         onClose={() => setSettingsOpen(false)}
         onSaved={() => showToast(t.keySaved, "success")}
       />

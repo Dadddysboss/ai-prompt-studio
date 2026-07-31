@@ -47,6 +47,7 @@ export const en = {
   model: "Model",
   apiKey: "API Key",
   apiKeyPlaceholder: "Paste your API key",
+  syncingModels: "Fetching models...",
   keyNote:
     "Your key never leaves this browser. It stays in LocalStorage and is sent only to your chosen provider.",
   save: "Save",

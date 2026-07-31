@@ -1,9 +1,13 @@
 "use client";
 
-import { ChevronDown, Eye, EyeOff, KeyRound, X } from "lucide-react";
+import { ChevronDown, Eye, EyeOff, KeyRound, Loader2, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useLanguage } from "@/locales/LanguageProvider";
-import { AI_PROVIDERS, getProviderMeta, type AIProvider } from "@/types/ai";
+import {
+  getProviderMeta,
+  type AIModelOption,
+  type AIProvider,
+} from "@/types/ai";
 
 interface AiSettingsDrawerProps {
   open: boolean;
@@ -11,8 +15,13 @@ interface AiSettingsDrawerProps {
   onProviderChange: (provider: AIProvider) => void;
   keys: Record<AIProvider, string>;
   models: Record<AIProvider, string>;
+  customModels: Partial<Record<AIProvider, AIModelOption[]>>;
   onKeysChange: (keys: Record<AIProvider, string>) => void;
   onModelsChange: (models: Record<AIProvider, string>) => void;
+  onModelsFetched: (
+    provider: AIProvider,
+    models: AIModelOption[]
+  ) => void;
   onClose: () => void;
   onSaved: () => void;
 }
@@ -28,13 +37,16 @@ export default function AiSettingsDrawer({
   onProviderChange,
   keys,
   models,
+  customModels,
   onKeysChange,
   onModelsChange,
+  onModelsFetched,
   onClose,
   onSaved,
 }: AiSettingsDrawerProps) {
   const { t } = useLanguage();
   const [showKey, setShowKey] = useState(false);
+  const [fetching, setFetching] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -54,9 +66,46 @@ export default function AiSettingsDrawer({
     };
   }, [open]);
 
-  const meta = getProviderMeta(provider);
   const key = keys[provider] ?? "";
-  const model = models[provider] ?? meta.defaultModel;
+  const model = models[provider] ?? getProviderMeta(provider).defaultModel;
+  const meta = getProviderMeta(provider);
+  const modelOptions = customModels[provider] ?? meta.models;
+
+  useEffect(() => {
+    const trimmedKey = key.trim();
+    if (!open || !trimmedKey || provider === "anthropic") return;
+
+    const controller = new AbortController();
+    const timer = window.setTimeout(() => {
+      setFetching(true);
+      fetch("/api/ai/models", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ provider, apiKey: trimmedKey }),
+        signal: controller.signal,
+      })
+        .then(async (res) => {
+          const json = (await res.json()) as {
+            models?: AIModelOption[];
+            error?: string;
+          };
+          if (!res.ok || json.error || !json.models) {
+            throw new Error(json.error ?? "Failed to fetch models");
+          }
+          onModelsFetched(provider, json.models);
+        })
+        .catch(() => {
+          // Fall back to the default model list.
+        })
+        .finally(() => setFetching(false));
+    }, 600);
+
+    return () => {
+      window.clearTimeout(timer);
+      controller.abort();
+      setFetching(false);
+    };
+  }, [key, provider, open, onModelsFetched]);
 
   return (
     <div
@@ -97,21 +146,21 @@ export default function AiSettingsDrawer({
           <div className="flex flex-col gap-2">
             <span className={labelClasses}>{t.provider}</span>
             <div className="grid grid-cols-3 gap-1 rounded-full border border-edge bg-background p-1">
-              {AI_PROVIDERS.map((providerMeta) => (
+              {["openai", "anthropic", "groq"].map((providerId) => (
                 <button
-                  key={providerMeta.id}
+                  key={providerId}
                   type="button"
-                  onClick={() => onProviderChange(providerMeta.id)}
-                  aria-pressed={provider === providerMeta.id}
+                  onClick={() => onProviderChange(providerId as AIProvider)}
+                  aria-pressed={provider === providerId}
                   className={`rounded-full px-3 py-2 text-xs font-medium transition-all duration-300 ${
-                    provider === providerMeta.id
+                    provider === providerId
                       ? "bg-accent text-white"
                       : "text-muted hover:text-foreground"
                   }`}
                 >
-                  {providerMeta.id === "openai"
+                  {providerId === "openai"
                     ? "OpenAI"
-                    : providerMeta.id === "anthropic"
+                    : providerId === "anthropic"
                       ? "Anthropic"
                       : "Groq"}
                 </button>
@@ -151,31 +200,47 @@ export default function AiSettingsDrawer({
           </div>
 
           <div className="flex flex-col gap-2">
-            <label htmlFor="ai-model" className={labelClasses}>
-              {t.model}
-            </label>
+            <div className="flex items-center justify-between gap-2">
+              <label htmlFor="ai-model" className={labelClasses}>
+                {t.model}
+              </label>
+              {fetching && (
+                <span className="inline-flex items-center gap-1.5 text-xs text-muted">
+                  <Loader2 size={12} className="animate-spin text-accent" />
+                  {t.syncingModels}
+                </span>
+              )}
+            </div>
             <div className="relative">
               <select
                 id="ai-model"
                 value={model}
+                disabled={fetching}
                 onChange={(event) =>
                   onModelsChange({
                     ...models,
                     [provider]: event.target.value,
                   })
                 }
-                className={`${inputClasses} appearance-none cursor-pointer pe-10`}
+                className={`${inputClasses} appearance-none cursor-pointer pe-10 disabled:cursor-not-allowed disabled:opacity-60`}
               >
-                {meta.models.map((option) => (
+                {modelOptions.map((option) => (
                   <option key={option.id} value={option.id}>
                     {option.label}
                   </option>
                 ))}
               </select>
-              <ChevronDown
-                size={16}
-                className="pointer-events-none absolute end-3 top-1/2 -translate-y-1/2 text-muted"
-              />
+              {fetching ? (
+                <Loader2
+                  size={16}
+                  className="pointer-events-none absolute end-3 top-1/2 -translate-y-1/2 animate-spin text-accent"
+                />
+              ) : (
+                <ChevronDown
+                  size={16}
+                  className="pointer-events-none absolute end-3 top-1/2 -translate-y-1/2 text-muted"
+                />
+              )}
             </div>
           </div>
 

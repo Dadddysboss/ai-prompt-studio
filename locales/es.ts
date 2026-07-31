@@ -49,6 +49,7 @@ export const es: Dictionary = {
   model: "Modelo",
   apiKey: "Clave API",
   apiKeyPlaceholder: "Pega tu clave API",
+  syncingModels: "Obteniendo modelos...",
   keyNote:
     "Tu clave nunca sale de este navegador. Permanece en LocalStorage y solo se envía al proveedor que elijas.",
   save: "Guardar",
