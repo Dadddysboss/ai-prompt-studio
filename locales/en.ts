@@ -51,6 +51,22 @@ export const en = {
   baseUrlPlaceholder: "https://api.deepseek.com/v1/chat/completions",
   customBaseUrlHint:
     "OpenAI-compatible endpoint — DeepSeek, OpenCode proxy, vLLM, LM Studio, etc.",
+  agentMode: "Agent Mode",
+  modeAuto: "Auto",
+  modeAutoDesc: "Standard responses with no extra instructions.",
+  modeAgents: "Agents",
+  modeAgentsDesc:
+    "Runs a specialist multi-agent team: planner, coder, critic, tester.",
+  modeCompact: "Compact",
+  modeCompactDesc: "Keeps responses short, structured, and to the point.",
+  modeDebug: "Debug",
+  modeDebugDesc: "Reasons step-by-step like a debugging engineer.",
+  modeDiff: "Diff",
+  modeDiffDesc: "Presents changes as a unified +/− diff.",
+  modeReview: "Review",
+  modeReviewDesc: "Acts as a senior code reviewer with prioritized feedback.",
+  freeModel: "Free",
+  paidModel: "Paid",
   syncingModels: "Fetching models...",
   modelsFetchError:
     "Couldn't load models for this key — showing popular defaults.",

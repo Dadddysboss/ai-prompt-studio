@@ -53,6 +53,22 @@ export const ur: Dictionary = {
   baseUrlPlaceholder: "https://api.deepseek.com/v1/chat/completions",
   customBaseUrlHint:
     "OpenAI-مطابق اینڈ پوائنٹ — DeepSeek، OpenCode پراکسی، vLLM، LM Studio وغیرہ۔",
+  agentMode: "ایجنٹ موڈ",
+  modeAuto: "خودکار",
+  modeAutoDesc: "بغیر کسی اضافی ہدایات کے معیاری جوابات۔",
+  modeAgents: "ایجنٹس",
+  modeAgentsDesc:
+    "ماہر ایجنٹس کی ٹیم چلاتا ہے: پلانر، کوڈر، نقاد، ٹیسٹر۔",
+  modeCompact: "کمپیکٹ",
+  modeCompactDesc: "جوابات مختصر، منظم اور نکتہ پر مبنی رکھتا ہے۔",
+  modeDebug: "ڈیبگ",
+  modeDebugDesc: "ڈیبگنگ انجینئر کی طرح قدم بہ قدم استدلال کرتا ہے۔",
+  modeDiff: "ڈف",
+  modeDiffDesc: "تبدیلیاں یونیفائیڈ +/− ڈف کے طور پر پیش کرتا ہے۔",
+  modeReview: "جائزہ",
+  modeReviewDesc: "سینئر کوڈ ریویور کی طرح ترجیحی فیڈبیک دیتا ہے۔",
+  freeModel: "مفت",
+  paidModel: "ادا شدہ",
   syncingModels: "ماڈلز حاصل ہو رہے ہیں...",
   modelsFetchError:
     "اس کلید کے لیے ماڈلز حاصل نہیں ہو سکے — مقبول ڈیفالٹس دکھائے جا رہے ہیں۔",

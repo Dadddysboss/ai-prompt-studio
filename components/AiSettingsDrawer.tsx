@@ -4,6 +4,7 @@ import { Check, ChevronDown, Eye, EyeOff, KeyRound, Loader2, X } from "lucide-re
 import { useEffect, useRef, useState } from "react";
 import { useLanguage } from "@/locales/LanguageProvider";
 import {
+  classifyModel,
   getProviderMeta,
   type AIModelOption,
   type AIProvider,
@@ -95,6 +96,7 @@ export default function AiSettingsDrawer({
 
   useEffect(() => {
     const trimmedKey = key.trim();
+    const baseUrl = baseUrls[provider]?.trim() || undefined;
     if (!open || !trimmedKey || provider === "anthropic") return;
 
     const controller = new AbortController();
@@ -104,11 +106,7 @@ export default function AiSettingsDrawer({
       fetch("/api/ai/models", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          provider,
-          apiKey: trimmedKey,
-          baseUrl: provider === "custom" ? baseUrls.custom?.trim() : undefined,
-        }),
+        body: JSON.stringify({ provider, apiKey: trimmedKey, baseUrl }),
         signal: controller.signal,
       })
         .then(async (res) => {
@@ -133,8 +131,7 @@ export default function AiSettingsDrawer({
       controller.abort();
       setFetching(false);
     };
-  }, [key, provider, open, baseUrls.custom, onModelsFetched]);
-
+  }, [key, provider, open, baseUrls, onModelsFetched]);
   return (
     <div
       className={`fixed inset-0 z-50 ${open ? "" : "pointer-events-none"}`}
@@ -203,32 +200,30 @@ export default function AiSettingsDrawer({
             </div>
           </div>
 
-          {provider === "custom" && (
-            <div className="flex flex-col gap-2">
-              <label htmlFor="base-url" className={labelClasses}>
-                {t.baseUrl}
-              </label>
-              <input
-                id="base-url"
-                type="url"
-                value={baseUrls.custom ?? ""}
-                onChange={(event) =>
-                  onBaseUrlsChange({
-                    ...baseUrls,
-                    custom: event.target.value,
-                  })
-                }
-                placeholder={t.baseUrlPlaceholder}
-                autoComplete="off"
-                spellCheck={false}
-                dir="ltr"
-                className={`${inputClasses} font-mono text-xs`}
-              />
-              <p className="text-xs leading-5 text-muted">
-                {t.customBaseUrlHint}
-              </p>
-            </div>
-          )}
+          <div className="flex flex-col gap-2">
+            <label htmlFor="base-url" className={labelClasses}>
+              {t.baseUrl}
+            </label>
+            <input
+              id="base-url"
+              type="url"
+              value={baseUrls[provider] ?? ""}
+              onChange={(event) =>
+                onBaseUrlsChange({
+                  ...baseUrls,
+                  [provider]: event.target.value,
+                })
+              }
+              placeholder={meta.endpoint}
+              autoComplete="off"
+              spellCheck={false}
+              dir="ltr"
+              className={`${inputClasses} font-mono text-xs`}
+            />
+            <p className="text-xs leading-5 text-muted">
+              {t.customBaseUrlHint}
+            </p>
+          </div>
 
           <div className="flex flex-col gap-2">
             <label htmlFor="api-key" className={labelClasses}>
@@ -286,6 +281,17 @@ export default function AiSettingsDrawer({
                 <span className="truncate font-mono text-xs text-foreground">
                   {model}
                 </span>
+                <span
+                  className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                    classifyModel(model, provider) === "free"
+                      ? "bg-emerald-500/15 text-emerald-300"
+                      : "bg-amber-500/15 text-amber-300"
+                  }`}
+                >
+                  {classifyModel(model, provider) === "free"
+                    ? t.freeModel
+                    : t.paidModel}
+                </span>
                 {fetching ? (
                   <Loader2
                     size={16}
@@ -336,7 +342,22 @@ export default function AiSettingsDrawer({
                           <span className="truncate font-mono text-xs">
                             {option.label}
                           </span>
-                          {selected && <Check size={14} className="shrink-0" />}
+                          <span className="flex shrink-0 items-center gap-2">
+                            <span
+                              className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                                classifyModel(option.id, provider) === "free"
+                                  ? "bg-emerald-500/15 text-emerald-300"
+                                  : "bg-amber-500/15 text-amber-300"
+                              }`}
+                            >
+                              {classifyModel(option.id, provider) === "free"
+                                ? t.freeModel
+                                : t.paidModel}
+                            </span>
+                            {selected && (
+                              <Check size={14} className="shrink-0" />
+                            )}
+                          </span>
                         </button>
                       );
                     })}

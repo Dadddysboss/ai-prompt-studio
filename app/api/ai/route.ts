@@ -9,6 +9,7 @@ interface AiRequestBody {
   model: string;
   apiKey: string;
   baseUrl?: string;
+  system?: string;
 }
 
 function isAIProvider(value: unknown): value is AIProvider {
@@ -34,7 +35,7 @@ function resolveEndpoint(
   baseUrl: string | undefined
 ): string {
   const meta = getProviderMeta(provider);
-  if (provider !== "custom" || !baseUrl?.trim()) return meta.endpoint;
+  if (!baseUrl?.trim()) return meta.endpoint;
   const trimmed = baseUrl.trim().replace(/\/+$/, "");
   if (trimmed.endsWith("/chat/completions")) return trimmed;
   return `${trimmed}/v1/chat/completions`;
@@ -48,7 +49,7 @@ export async function POST(request: Request) {
     return Response.json({ error: "Invalid JSON body." }, { status: 400 });
   }
 
-  const { prompt, provider, model, apiKey, baseUrl } = body;
+  const { prompt, provider, model, apiKey, baseUrl, system } = body;
 
   if (typeof prompt !== "string" || !prompt.trim()) {
     return Response.json({ error: "Prompt is required." }, { status: 400 });
@@ -69,6 +70,9 @@ export async function POST(request: Request) {
   ) {
     return Response.json({ error: "Invalid base URL." }, { status: 400 });
   }
+  if (system !== undefined && typeof system !== "string") {
+    return Response.json({ error: "Invalid system prompt." }, { status: 400 });
+  }
 
   const providerMeta = getProviderMeta(provider);
   const endpoint = resolveEndpoint(provider, baseUrl);
@@ -83,17 +87,24 @@ export async function POST(request: Request) {
     headers.Authorization = `Bearer ${apiKey}`;
   }
 
+  const trimmedSystem = system?.trim();
   const payload =
     providerMeta.id === "anthropic"
       ? {
           model,
           max_tokens: 1024,
+          ...(trimmedSystem ? { system: trimmedSystem } : {}),
           messages: [{ role: "user", content: prompt }],
           stream: true,
         }
       : {
           model,
-          messages: [{ role: "user", content: prompt }],
+          messages: trimmedSystem
+            ? [
+                { role: "system", content: trimmedSystem },
+                { role: "user", content: prompt },
+              ]
+            : [{ role: "user", content: prompt }],
           stream: true,
         };
 

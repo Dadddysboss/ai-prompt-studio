@@ -32,10 +32,9 @@ function resolveModelsUrl(
   baseUrl: string | undefined
 ): string {
   const meta = getProviderMeta(provider);
-  const base =
-    provider === "custom" && baseUrl?.trim()
-      ? baseUrl.trim().replace(/\/+$/, "")
-      : meta.endpoint.replace(/\/chat\/completions$/, "");
+  const base = baseUrl?.trim()
+    ? baseUrl.trim().replace(/\/+$/, "").replace(/\/chat\/completions$/, "")
+    : meta.endpoint.replace(/\/chat\/completions$/, "");
   return `${base}/models`;
 }
 

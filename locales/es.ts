@@ -53,6 +53,22 @@ export const es: Dictionary = {
   baseUrlPlaceholder: "https://api.deepseek.com/v1/chat/completions",
   customBaseUrlHint:
     "Endpoint compatible con OpenAI — DeepSeek, proxy OpenCode, vLLM, LM Studio, etc.",
+  agentMode: "Modo agente",
+  modeAuto: "Auto",
+  modeAutoDesc: "Respuestas estándar sin instrucciones adicionales.",
+  modeAgents: "Agentes",
+  modeAgentsDesc:
+    "Ejecuta un equipo de agentes especialistas: planificador, programador, crítico, evaluador.",
+  modeCompact: "Compacto",
+  modeCompactDesc: "Mantiene respuestas breves, estructuradas y directas.",
+  modeDebug: "Depurar",
+  modeDebugDesc: "Razona paso a paso como un ingeniero de depuración.",
+  modeDiff: "Diff",
+  modeDiffDesc: "Presenta los cambios como un diff unificado +/−.",
+  modeReview: "Revisión",
+  modeReviewDesc: "Actúa como revisor senior de código con comentarios priorizados.",
+  freeModel: "Gratis",
+  paidModel: "De pago",
   syncingModels: "Obteniendo modelos...",
   modelsFetchError:
     "No se pudieron cargar los modelos de esta clave — mostrando los populares por defecto.",

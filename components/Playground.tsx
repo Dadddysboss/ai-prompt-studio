@@ -20,6 +20,11 @@ import {
   type AIModelOption,
   type AIProvider,
 } from "@/types/ai";
+import {
+  AGENT_MODES,
+  getAgentMode,
+  type AgentModeId,
+} from "@/types/agents";
 
 interface PlaygroundProps {
   prompt: string;
@@ -93,6 +98,10 @@ export default function Playground({ prompt }: PlaygroundProps) {
   const [baseUrls, setBaseUrls] = useLocalStorage<Record<AIProvider, string>>(
     "aiBaseUrls",
     { openai: "", anthropic: "", groq: "", custom: "" }
+  );
+  const [agentMode, setAgentMode] = useLocalStorage<AgentModeId>(
+    "aiMode",
+    "auto"
   );
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [customModels, setCustomModels] = useState<
@@ -196,7 +205,8 @@ export default function Playground({ prompt }: PlaygroundProps) {
           provider,
           model,
           apiKey: key,
-          baseUrl: provider === "custom" ? baseUrls.custom?.trim() : undefined,
+          baseUrl: baseUrls[provider]?.trim() || undefined,
+          system: getAgentMode(agentMode).system,
         }),
         signal: controller.signal,
       });
@@ -304,6 +314,36 @@ export default function Playground({ prompt }: PlaygroundProps) {
             <Settings size={16} />
           </button>
         </div>
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <div className="flex flex-wrap items-center gap-1 rounded-full border border-edge bg-background p-1">
+          {AGENT_MODES.map((mode) => {
+            const active = mode.id === agentMode;
+            const descKey = `mode${mode.id.charAt(0).toUpperCase()}${mode.id.slice(1)}Desc`;
+            return (
+              <button
+                key={mode.id}
+                type="button"
+                onClick={() => setAgentMode(mode.id)}
+                aria-pressed={active}
+                title={t[descKey as keyof typeof t]}
+                className={`rounded-full px-3 py-1.5 font-mono text-xs font-medium transition-all duration-300 ${
+                  active
+                    ? "bg-accent text-white"
+                    : "text-muted hover:bg-surface-hover hover:text-foreground"
+                }`}
+              >
+                {mode.command}
+              </button>
+            );
+          })}
+        </div>
+        <p className="text-xs leading-5 text-muted">
+          {t[
+            `mode${agentMode.charAt(0).toUpperCase()}${agentMode.slice(1)}Desc` as keyof typeof t
+          ]}
+        </p>
       </div>
 
       {variables.length === 0 ? (

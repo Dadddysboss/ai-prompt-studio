@@ -75,3 +75,15 @@ export function getProviderMeta(provider: AIProvider): AIProviderMeta {
     AI_PROVIDERS.find((meta) => meta.id === provider) ?? AI_PROVIDERS[0]
   );
 }
+
+export type ModelTier = "free" | "paid";
+
+export function classifyModel(
+  id: string,
+  provider: AIProvider
+): ModelTier {
+  if (/free/i.test(id)) return "free";
+  if (provider === "groq") return "free";
+  if (provider === "openai" && /^gpt-oss/i.test(id)) return "free";
+  return "paid";
+}
