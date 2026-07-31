@@ -3,6 +3,10 @@ import {
   resolveChatEndpoint,
   type AIProvider,
 } from "@/types/ai";
+import {
+  buildEndpointHint,
+  extractUpstreamError,
+} from "@/lib/aiUpstream";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -110,18 +114,12 @@ export async function POST(request: Request) {
     });
 
     if (!upstream.ok || !upstream.body) {
-      let message = `${upstream.status} ${upstream.statusText}`;
-      try {
-        const errorJson = (await upstream.json()) as {
-          error?: { message?: unknown };
-        } | null;
-        if (typeof errorJson?.error?.message === "string") {
-          message = errorJson.error.message;
-        }
-      } catch {
-        // Upstream error body is not JSON.
-      }
-      return Response.json({ error: message }, { status: upstream.status });
+      const { status, message } = await extractUpstreamError(
+        upstream,
+        endpoint,
+        buildEndpointHint(endpoint, "chat")
+      );
+      return Response.json({ error: message }, { status });
     }
 
     return new Response(upstream.body, {
@@ -130,11 +128,12 @@ export async function POST(request: Request) {
         "Cache-Control": "no-cache, no-transform",
       },
     });
-  } catch {
+  } catch (error) {
+    const detail =
+      error instanceof Error ? ` (${error.message})` : "";
     return Response.json(
       {
-        error:
-          "Could not reach the AI provider. Check your API key and try again.",
+        error: `Could not reach the AI provider at "${endpoint}"${detail}. Check the Base URL and API key in Settings, then try again.`,
       },
       { status: 502 }
     );

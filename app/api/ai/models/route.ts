@@ -1,4 +1,11 @@
-import { getProviderMeta, type AIProvider } from "@/types/ai";
+import {
+  resolveModelsUrl,
+  type AIProvider,
+} from "@/types/ai";
+import {
+  buildEndpointHint,
+  extractUpstreamError,
+} from "@/lib/aiUpstream";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -25,17 +32,6 @@ function isHttpUrl(value: string): boolean {
   } catch {
     return false;
   }
-}
-
-function resolveModelsUrl(
-  provider: AIProvider,
-  baseUrl: string | undefined
-): string {
-  const meta = getProviderMeta(provider);
-  const base = baseUrl?.trim()
-    ? baseUrl.trim().replace(/\/+$/, "").replace(/\/chat\/completions$/, "")
-    : meta.endpoint.replace(/\/chat\/completions$/, "");
-  return `${base}/models`;
 }
 
 export async function POST(request: Request) {
@@ -81,18 +77,12 @@ export async function POST(request: Request) {
     });
 
     if (!res.ok) {
-      let message = `${res.status} ${res.statusText}`;
-      try {
-        const errorJson = (await res.json()) as {
-          error?: { message?: unknown };
-        } | null;
-        if (typeof errorJson?.error?.message === "string") {
-          message = errorJson.error.message;
-        }
-      } catch {
-        // Upstream error body is not JSON.
-      }
-      return Response.json({ error: message }, { status: res.status });
+      const { status, message } = await extractUpstreamError(
+        res,
+        modelsUrl,
+        buildEndpointHint(modelsUrl, "models")
+      );
+      return Response.json({ error: message }, { status });
     }
 
     const json = (await res.json()) as { data?: { id?: unknown }[] } | null;
@@ -111,7 +101,7 @@ export async function POST(request: Request) {
   } catch {
     return Response.json(
       {
-        error: "Could not reach the provider's models endpoint.",
+        error: `Could not reach the models endpoint "${modelsUrl}". Verify the Base URL in Settings and your network connection.`,
       },
       { status: 502 }
     );

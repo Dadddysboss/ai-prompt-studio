@@ -88,13 +88,39 @@ export function classifyModel(
   return "paid";
 }
 
+function stripTrailingSlashes(value: string): string {
+  return value.trim().replace(/\/+$/, "");
+}
+
+function urlHasPathSegments(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    return parsed.pathname !== "" && parsed.pathname !== "/";
+  } catch {
+    return false;
+  }
+}
+
 export function resolveChatEndpoint(
   provider: AIProvider,
   baseUrl: string | undefined
 ): string {
   const meta = getProviderMeta(provider);
   if (!baseUrl?.trim()) return meta.endpoint;
-  const trimmed = baseUrl.trim().replace(/\/+$/, "");
+  const trimmed = stripTrailingSlashes(baseUrl);
   if (trimmed.endsWith("/chat/completions")) return trimmed;
+  if (urlHasPathSegments(trimmed)) return `${trimmed}/chat/completions`;
   return `${trimmed}/v1/chat/completions`;
+}
+
+export function resolveModelsUrl(
+  provider: AIProvider,
+  baseUrl: string | undefined
+): string {
+  const meta = getProviderMeta(provider);
+  const base = baseUrl?.trim()
+    ? stripTrailingSlashes(baseUrl).replace(/\/chat\/completions$/, "")
+    : meta.endpoint.replace(/\/chat\/completions$/, "");
+  if (urlHasPathSegments(base)) return `${base}/models`;
+  return `${base}/v1/models`;
 }
