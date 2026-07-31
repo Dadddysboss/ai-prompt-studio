@@ -15,11 +15,7 @@ import AiSettingsDrawer from "@/components/AiSettingsDrawer";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { useLanguage } from "@/locales/LanguageProvider";
 import { format } from "@/locales/index";
-import {
-  getProviderMeta,
-  type AIProvider,
-  type AIProviderMeta,
-} from "@/types/ai";
+import { getProviderMeta, type AIProvider } from "@/types/ai";
 
 interface PlaygroundProps {
   prompt: string;
@@ -49,38 +45,6 @@ function formatCost(usd: number): string {
 }
 
 class ApiRequestError extends Error {}
-
-function buildRequest(
-  provider: AIProviderMeta,
-  model: string,
-  content: string,
-  key: string
-): { headers: Record<string, string>; body: string } {
-  const headers: Record<string, string> = { "Content-Type": "application/json" };
-  if (provider.id === "anthropic") {
-    headers["x-api-key"] = key;
-    headers["anthropic-version"] = "2023-06-01";
-    headers["anthropic-dangerous-direct-browser-access"] = "true";
-  } else {
-    headers.Authorization = `Bearer ${key}`;
-  }
-
-  const payload =
-    provider.id === "anthropic"
-      ? {
-          model,
-          max_tokens: 1024,
-          messages: [{ role: "user", content }],
-          stream: true,
-        }
-      : {
-          model,
-          messages: [{ role: "user", content }],
-          stream: true,
-        };
-
-  return { headers, body: JSON.stringify(payload) };
-}
 
 function extractDelta(json: Record<string, unknown>): string | null {
   const choices = json.choices as
@@ -191,8 +155,7 @@ export default function Playground({ prompt }: PlaygroundProps) {
     }
     if (!compiled.trim()) return;
 
-    const providerMeta = getProviderMeta(provider);
-    const model = models[provider] ?? providerMeta.defaultModel;
+    const model = models[provider] ?? getProviderMeta(provider).defaultModel;
     const controller = new AbortController();
     abortRef.current = controller;
 
@@ -200,27 +163,24 @@ export default function Playground({ prompt }: PlaygroundProps) {
     setResponse("");
 
     try {
-      const { headers, body } = buildRequest(
-        providerMeta,
-        model,
-        compiled,
-        key
-      );
-      const res = await fetch(providerMeta.endpoint, {
+      const res = await fetch("/api/ai", {
         method: "POST",
-        headers,
-        body,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt: compiled,
+          provider,
+          model,
+          apiKey: key,
+        }),
         signal: controller.signal,
       });
 
       if (!res.ok || !res.body) {
         let message = `${res.status} ${res.statusText}`;
         try {
-          const errorJson = (await res.json()) as {
-            error?: { message?: string };
-          };
-          if (errorJson.error?.message) {
-            message = errorJson.error.message;
+          const errorJson = (await res.json()) as { error?: string };
+          if (errorJson?.error) {
+            message = errorJson.error;
           }
         } catch {
           // Response body is not JSON.
